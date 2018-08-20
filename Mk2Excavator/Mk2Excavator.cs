@@ -24,7 +24,7 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
     public float mrCurrentPower;
     public float mrPowerRate = 20f;
 
-    public int mModVersion = 9;
+    public int mModVersion = 10;
     private string PopUpText;
     public static bool AllowMovement = true;
     public bool mbDoDigOre;
@@ -90,6 +90,12 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
     private DigArea digArea;
     private IEnumerator<CubeCoord> digAreaEnumerator;
     private CubeCoord? currentCube;
+    private CubeCoord origin;
+    private byte machineFlags;
+    public bool superOPflag;
+    public int mutePews;
+    private int powerDefaultBackup;
+    private int powerOreBackup;
 
     public Mk2Excavator(Segment segment, long x, long y, long z, ushort cube, byte flags, ushort lValue,
         bool lbFromDisk, int powerDefault, int powerOre, int digRadius, int digHeight, int maxPower)
@@ -98,8 +104,10 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
     {
         this.mrPowerRate = powerDefault;
         this.mrPowerRateDefault = this.mrPowerRate;
+        this.powerDefaultBackup = powerDefault;
         this.mrPowerRateOre = powerOre;
-        this.mbNeedsLowFrequencyUpdate = true;
+        this.powerOreBackup = powerOre;
+        this.mbNeedsLowFrequencyUpdate = true;                
         this.mbNeedsUnityUpdate = true;
         this.mbWorkComplete = false;
 
@@ -118,6 +126,12 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
         this.mCubeColor = Color.blue;
         this.mbDoDropBlocks = true;
         this.mrMaxPower = maxPower;
+        this.mutePews = 0;
+        // New DigArea object should go in here
+        machineFlags = flags;
+        origin = new CubeCoord(x, y, z);
+        digArea = new DigArea(origin, 0, digRadius, digHeight, machineFlags);
+
     }
 
     public override bool ShouldSave()
@@ -141,8 +155,12 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
         writer.Write(this.mnDigSizeY); // max dig height
         writer.Write(this.mnCurrentDigSizeY); // current dig height
 
-        writer.Write(value);
-        writer.Write(value);
+        int OPFlag = superOPflag ? 1 : 0;
+
+        // version 10
+        writer.Write(mutePews);
+        writer.Write(OPFlag);
+
         writer.Write(value);
         writer.Write(value);
         // 10 32bit writes
@@ -155,7 +173,7 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
 
         if (modversion >= 6)
         {
-            if (modversion == 8)
+            if (modversion <= 9)
             {
                 GameManager.DoLocalChat("Mk2Excavator version updated. Please replace all placed Mk2Excavators.");
             }
@@ -168,8 +186,11 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
             this.mnDigSizeY = reader.ReadInt32();
             this.mnCurrentDigSizeY = reader.ReadInt32();
 
-            reader.ReadSingle();
-            reader.ReadSingle();
+            int OPFlag;
+            this.mutePews = reader.ReadInt32();
+            OPFlag = reader.ReadInt32();
+            superOPflag = OPFlag == 0 ? false : true;
+
             reader.ReadSingle();
             reader.ReadSingle();
             // 10 32bit reads
@@ -247,21 +268,14 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
                     Debug.LogError("Mk2Excavator missing game object #0 (GO)?");
                 }
 
-                this.mPreviewCube = base.mWrapper.mGameObjectList[0].gameObject.transform.Search("Preview Cube")
-                    .gameObject;
-                this.mCurrentCube = base.mWrapper.mGameObjectList[0].gameObject.transform.Search("Current Cube")
-                    .gameObject;
-                this.mTurretObject = base.mWrapper.mGameObjectList[0].gameObject.transform
-                    .Search("Excavator Turret Holder").gameObject;
-                this.mGunObject = base.mWrapper.mGameObjectList[0].gameObject.transform.Search("Excavator Gun Holder")
-                    .gameObject;
-                this.mBarrelObject = base.mWrapper.mGameObjectList[0].gameObject.transform.Search("Excavator Gun")
-                    .gameObject;
+                this.mPreviewCube = base.mWrapper.mGameObjectList[0].gameObject.transform.Search("Preview Cube").gameObject;
+                this.mCurrentCube = base.mWrapper.mGameObjectList[0].gameObject.transform.Search("Current Cube").gameObject;
+                this.mTurretObject = base.mWrapper.mGameObjectList[0].gameObject.transform.Search("Excavator Turret Holder").gameObject;
+                this.mGunObject = base.mWrapper.mGameObjectList[0].gameObject.transform.Search("Excavator Gun Holder").gameObject;
+                this.mBarrelObject = base.mWrapper.mGameObjectList[0].gameObject.transform.Search("Excavator Gun").gameObject;
                 this.mLaserObject = base.mWrapper.mGameObjectList[0].gameObject.transform.Search("Laser").gameObject;
-                this.mExcavatorBase = base.mWrapper.mGameObjectList[0].gameObject.transform.Search("Excavator Base")
-                    .gameObject;
-                this.mExcavatorTurret = base.mWrapper.mGameObjectList[0].gameObject.transform.Search("Excavator Turret")
-                    .gameObject;
+                this.mExcavatorBase = base.mWrapper.mGameObjectList[0].gameObject.transform.Search("Excavator Base").gameObject;
+                this.mExcavatorTurret = base.mWrapper.mGameObjectList[0].gameObject.transform.Search("Excavator Turret").gameObject;
 
                 MeshRenderer baseRenderer = mExcavatorBase.GetComponent<MeshRenderer>();
                 MeshRenderer turretRenderer = mExcavatorTurret.GetComponent<MeshRenderer>();
@@ -292,16 +306,15 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
             else
             {
                 this.mPreviewCube.transform.localScale = new Vector3((this.mnCurrentDigSizeX * 2) + 0.75f,
-                    (float) this.mnCurrentDigSizeY, (this.mnCurrentDigSizeZ * 2) + 0.75f);
+                (float)this.mnCurrentDigSizeY, (this.mnCurrentDigSizeZ * 2) + 0.75f);
                 this.mPreviewCube.transform.localPosition = new Vector3(0f, ((float) this.mnCurrentDigSizeY) / 2f, 0f);
                 this.mCurrentCube.transform.localScale = new Vector3((this.mnDigSizeX * 2) + 0.75f,
-                    (float) this.mnDigSizeY, (this.mnDigSizeZ * 2) + 0.75f);
+                (float)this.mnDigSizeY, (this.mnDigSizeZ * 2) + 0.75f);
                 this.mCurrentCube.transform.localPosition = new Vector3(0f, ((float) this.mnDigSizeY) / 2f, 0f);
             }
 
-            Vector3 lPos =
-                WorldScript.instance.mPlayerFrustrum.GetCoordsToUnity(this.mnLastDigX, this.mnLastDigY,
-                    this.mnLastDigZ);
+            Vector3 lPos = WorldScript.instance.mPlayerFrustrum.GetCoordsToUnity(this.mnLastDigX, this.mnLastDigY, this.mnLastDigZ);
+
             if (((this.mrOutOfPowerTime > 2f) || this.mbWorkComplete) || (this.mrTimeSinceShoot > 2f))
             {
                 this.mLaserObject.SetActive(false);
@@ -317,14 +330,12 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
                 Vector3 vector2 = lPos - this.mTurretObject.transform.position;
                 vector2.y = 0f;
                 Transform transform7 = this.mTurretObject.transform;
-                transform7.forward +=
-                    (Vector3) (((vector2 - this.mTurretObject.transform.forward) * Time.deltaTime) * 2f);
+                transform7.forward += (Vector3)(((vector2 - this.mTurretObject.transform.forward) * Time.deltaTime) * 2f);
                 vector2 = lPos - this.mGunObject.transform.position;
                 Vector3 forward = this.mTurretObject.transform.forward;
                 forward.y = vector2.y;
                 Transform transform8 = this.mGunObject.transform;
-                transform8.forward +=
-                    (Vector3) (((forward - this.mGunObject.transform.forward) * Time.deltaTime) * 2.75f);
+                transform8.forward += (Vector3)(((forward - this.mGunObject.transform.forward) * Time.deltaTime) * 2.75f);
                 vector2 = lPos - this.mBarrelObject.transform.position;
                 float magnitude = vector2.magnitude;
                 if (this.mrTimeSinceShoot == 0f)
@@ -332,7 +343,7 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
                     this.mLaserObject.SetActive(true);
                     if (mnBlocksDestroyed % 5 == 0)
                     {
-                        AudioHUDManager.instance.ExcavatorFire(this.mTurretObject.transform.position);
+                        if (mutePews == 0) AudioHUDManager.instance.ExcavatorFire(this.mTurretObject.transform.position);
                     }
 
                     if ((SurvivalParticleManager.instance == null) ||
@@ -347,11 +358,8 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
                     }
                     else
                     {
-                        SurvivalParticleManager.instance.GreenShootParticles.transform.position =
-                            this.mBarrelObject.transform.position +
-                            ((Vector3) (this.mBarrelObject.transform.forward * 0.5f));
-                        SurvivalParticleManager.instance.GreenShootParticles.transform.forward =
-                            this.mBarrelObject.transform.forward;
+                        SurvivalParticleManager.instance.GreenShootParticles.transform.position = this.mBarrelObject.transform.position + ((Vector3) (this.mBarrelObject.transform.forward * 0.5f));
+                        SurvivalParticleManager.instance.GreenShootParticles.transform.forward = this.mBarrelObject.transform.forward;
                         SurvivalParticleManager.instance.GreenShootParticles.Emit(50);
                     }
 
@@ -395,7 +403,7 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
         }
 
         if (digArea == null)
-            digArea = new DigArea(new CubeCoord(mnX, mnY, mnZ), mnCurrentDigSizeY, mnDigSizeX, mnDigSizeY, mFlags);
+            digArea = new DigArea(origin, mnCurrentDigSizeY, mnDigSizeX, mnDigSizeY, machineFlags);
 
         PercentScanned = (float) mnTotalBlocksScanned / digArea.Volume;
         if (digAreaEnumerator == null)
@@ -407,10 +415,9 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
             return;
         }
 
-
         mrOutOfPowerTime = 0f;
-
-        var skipCounter = 0;
+        int skipCounter = 0;
+        int OPCounter = 0;
         while (true)
         {
             // Get the next cube in our dig area
@@ -425,8 +432,14 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
                 }
             }
 
-            if (!(currentCube is CubeCoord cubeCoord)) return;
-            var result = AttemptToDig(cubeCoord.x, cubeCoord.y, cubeCoord.z);
+            if (!(currentCube is CubeCoord)) return;
+            CubeCoord cubeCoord = (CubeCoord)currentCube;
+            DigResult result = DigResult.Fail;
+            if (WorldScript.mbIsServer)
+            {
+                result = AttemptToDig(cubeCoord.x, cubeCoord.y, cubeCoord.z);                    
+            }
+
             if (result == DigResult.Fail)
                 return;
 
@@ -436,8 +449,19 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
             {
                 case DigResult.Dig:
                     // Success, we reset and come back again next tick
-                    currentCube = null;
-                    return;
+                    if (!superOPflag)
+                    {
+                        currentCube = null;
+                        return;
+                    }
+                    else
+                    {
+                        OPCounter++;
+                        currentCube = null;
+                        if (OPCounter > 5)
+                            break;
+                        continue;
+                    }
                 case DigResult.Skip:
                     // A block we want to skip ... let's do up to 32 per tick
                     skipCounter++;
@@ -712,12 +736,25 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
         this.mnCurrentDigSizeZ = mnDigSizeX; // 9;
 
         digArea = null;
+        digArea = new DigArea(origin, 0, mnDigSizeX, mnDigSizeY, machineFlags);
         digAreaEnumerator = null;
         currentCube = null;
+
+        if (superOPflag)
+        {
+            this.mrPowerRate = 1f;
+            this.mrPowerRateOre = 1f;
+        }
+        else
+        {
+            this.mrPowerRate = powerDefaultBackup;
+            this.mrPowerRateOre = powerOreBackup;
+        }
 
         mbWorkComplete = false;
         mnBlocksDestroyed = 0;
         mnTotalBlocksScanned = 0;
+        this.RequestImmediateNetworkUpdate();
     }
 
     public override string GetPopupText()
@@ -817,6 +854,19 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
                     bool rshiftkey = Input.GetKey(KeyCode.RightShift);
 
                     bool radiusupkey = Input.GetKeyDown(KeyCode.Home);
+                    bool superOPkey = Input.GetKeyDown(KeyCode.KeypadMultiply);
+                    if ((lshiftkey || rshiftkey) && superOPkey)
+                    {
+                        this.mfCommandDebounce += LowFrequencyThread.mrPreviousUpdateTimeStep;
+                        if (this.mfCommandDebounce >= 0.4f)
+                        {
+                            superOPflag = !superOPflag;
+
+                            Mk2ExcavatorWindow.SuperOPMode(this, superOPflag ? 1 : 0);                            
+                            mfCommandDebounce = 0f;
+                        }
+                    }
+
                     if (radiusupkey)
                     {
                         this.mfCommandDebounce += LowFrequencyThread.mrPreviousUpdateTimeStep;
@@ -934,28 +984,43 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
                         }
                     }
 
+                    bool rctrlKey = Input.GetKeyDown(KeyCode.RightControl);
+                    bool lctrlKey = Input.GetKeyDown(KeyCode.LeftControl);
+                    bool essKey = Input.GetKeyDown(KeyCode.S);
+                    if ((rctrlKey || lctrlKey) && essKey)
+                    {
+                        this.mfCommandDebounce += LowFrequencyThread.mrPreviousUpdateTimeStep;
+                        if (this.mfCommandDebounce >= 0.4f)
+                        {
+                            mutePews = mutePews == 0 ? 1 : 0;
+                            Mk2ExcavatorWindow.MutePews(this, mutePews);
+                            mfCommandDebounce = 0f;
+                        }
+                    }
+
                     if (flag18 || interactkey)
                     {
                         MarkDirtyDelayed();
                     }
 
-                    if (radiusupkey || radiusdownkey || heightdownkey || heightupkey)
+                    if (radiusupkey || radiusdownkey || heightdownkey || heightupkey || superOPkey || essKey)
                     {
+                        this.RequestImmediateNetworkUpdate();
                         UpdateDigSettings();
                         MarkDirtyDelayed();
                     }
                 }
+                UIManager.ForceNGUIUpdate = 0.1f;
 
                 var response = new StringBuilder();
-                response.AppendLine($"Mk2 Auto-Excavator v{mModVersion}");
-                response.AppendLine($"{mnTotalBlocksScanned} Blocks Scanned");
-                response.AppendLine($"{PercentScanned * 100}%");
-                response.AppendLine($"{mrCurrentPower}/{mrMaxPower} power");
-                response.AppendLine($"(Q)Clear mode: Currently: {eExcavateState}");
-                response.AppendLine($"(T)Drop mode: Currently: {eDropState}");
-                response.AppendLine($"(Shift) (Home/End) Radius: {mnDigSizeX}");
-                response.AppendLine($"(Shift) Numpad (+/-) Height: {mnDigSizeY}");
-
+                response.AppendLine("Mk2 Excavator v" + mModVersion + (mutePews!=0 ? " muted" : ""));
+                response.AppendLine(mnTotalBlocksScanned + " Blocks Scanned");
+                response.AppendLine((PercentScanned * 100) + "% complete " + (superOPflag ? "@.@" : ""));
+                response.AppendLine(mrCurrentPower + "/" + mrMaxPower + " power");
+                response.AppendLine("(Q)Clear mode: Currently: " + eExcavateState);
+                response.AppendLine("(T)Drop mode: Currently: " + eDropState);
+                response.AppendLine("(Shift) (Home/End) Radius: " + mnDigSizeX);
+                response.AppendLine("(Shift) Numpad (+/-) Height: " + mnDigSizeY);
                 PopUpText = response.ToString();
             }
         }

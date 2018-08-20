@@ -9,7 +9,7 @@ class Mk2ExcavatorMain : FortressCraftMod
     private string XMLConfigFile = "Mk2ExcavatorConfig.XML";
     private string XMLConfigPath = "";
     private string XMLModID = "FlexibleGames.Mk2Excavator";
-    private int XMLModVersion = 9;
+    private int XMLModVersion = 10;
     public Mk2ExcavatorConfig mConfig;
     private bool mXMLFileExists;
 

@@ -5,31 +5,37 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
-using Valve.VR;
+//using Valve.VR;
 
 public class DigArea
 {
-    private CubeCoord origin;
-    private int curHeight;
+    private CubeCoord Origin;
+    private int CurHeight;
 
     private Vector3 vectorUp;
     private Vector3 vectorForward;
     private Vector3 vectorRight;
 
-    private int digRadius;
-    private int maxHeight;
+    private int DigRadius;
+    private int MaxHeight;
+
+    public int Volume; 
+    public int CurrentHeight;
 
     public DigArea(CubeCoord origin, int curHeight, int digRadius, int maxHeight, byte flags)
     {
         // Need to know where the block is
-        this.origin = origin;
+        this.Origin = origin;
 
         // Current dig position (offset from block)
-        this.curHeight = curHeight;
+        this.CurHeight = curHeight;
 
         // Dig settings
-        this.digRadius = digRadius;
-        this.maxHeight = maxHeight;
+        this.DigRadius = digRadius;
+        this.MaxHeight = maxHeight;
+
+        Volume = ((digRadius * 2) + 1) * maxHeight;
+        CurrentHeight = curHeight;
 
         // We'll need these to math later
         var rotationQuart = SegmentCustomRenderer.GetRotationQuaternion(flags);
@@ -41,25 +47,27 @@ public class DigArea
         vectorUp.Normalize();
         vectorForward.Normalize();
         vectorRight.Normalize();
+
+
     }
 
     public IEnumerator<CubeCoord> GetRemainingDigArea()
     {
         var height = 1;
-        if (curHeight > 0 && curHeight < maxHeight)
+        if (CurHeight > 0 && CurHeight < MaxHeight)
         {
-            height = curHeight;
+            height = CurHeight;
         }
 
-        for (; height <= maxHeight; height++)
+        for (; height <= MaxHeight; height++)
         {
-            for (var right = -digRadius; right <= digRadius; right++)
+            for (var right = -DigRadius; right <= DigRadius; right++)
             {
-                for (var forward = -digRadius; forward <= digRadius; forward++)
+                for (var forward = -DigRadius; forward <= DigRadius; forward++)
                 {
-                    var x = origin.x + (long) ((double) height * vectorUp.x);
-                    var y = origin.y + (long) ((double) height * vectorUp.y);
-                    var z = origin.z + (long) ((double) height * vectorUp.z);
+                    var x = Origin.x + (long) ((double) height * vectorUp.x);
+                    var y = Origin.y + (long) ((double) height * vectorUp.y);
+                    var z = Origin.z + (long) ((double) height * vectorUp.z);
 
                     x += (long) ((double) right * vectorRight.x);
                     y += (long) ((double) right * vectorRight.y);
@@ -69,14 +77,12 @@ public class DigArea
                     y += (long) ((double) forward * vectorForward.y);
                     z += (long) ((double) forward * vectorForward.z);
 
-                    curHeight = height;
+                    CurHeight = height;
+                    CurrentHeight = height;
 
                     yield return new CubeCoord(x, y, z);
                 }
             }
         }
     }
-
-    public int Volume => (this.digRadius * 4 + 2) * this.maxHeight;
-    public int CurrentHeight => curHeight;
 }

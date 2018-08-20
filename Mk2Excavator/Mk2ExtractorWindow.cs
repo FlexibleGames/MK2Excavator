@@ -10,6 +10,8 @@ public class Mk2ExcavatorWindow : BaseMachineWindow
     public const string InterfaceAlterRadius = "AlterRadius";
     public const string InterfaceAlterDigState = "AlterDigState";
     public const string InterfaceAlterDropState = "AlterDropState";
+    public const string InterfaceOPMode = "SuperOPMode";
+    public const string InterfaceMutePews = "MutePews";
 
     public static bool dirty;
     public static bool networkredraw;
@@ -30,6 +32,24 @@ public class Mk2ExcavatorWindow : BaseMachineWindow
             return;
 
         dirty = false;
+    }
+    public static bool SuperOPMode(Mk2Excavator machine, int data)
+    {
+        machine.superOPflag = data > 0 ? true : false;
+
+        if (!WorldScript.mbIsServer)
+            NetworkManager.instance.SendInterfaceCommand("FlexibleGames.Mk2ExcavatorWindow", "SuperOPMode", data.ToString(), null, machine, 0.0f);
+
+        return true;
+    }
+
+    public static bool MutePews(Mk2Excavator machine, int data)
+    {
+        machine.mutePews = data;
+        if (!WorldScript.mbIsServer)
+            NetworkManager.instance.SendInterfaceCommand("FlexibleGames.Mk2ExcavatorWindow", "MutePews", data.ToString(), null, machine, 0.0f);
+
+        return true;
     }
 
     public static bool AlterHeight(Mk2Excavator machine, int data)
@@ -101,7 +121,7 @@ public class Mk2ExcavatorWindow : BaseMachineWindow
     public static NetworkInterfaceResponse HandleNetworkCommand(Player player, NetworkInterfaceCommand nic)
     {        
         Mk2Excavator machine = nic.target as Mk2Excavator;
-        string key = nic.command;
+        string key = nic.command; 
 
         if (key != null)
         {
@@ -123,6 +143,16 @@ public class Mk2ExcavatorWindow : BaseMachineWindow
             else if (key == "AlterDropState")
             {
                 Mk2ExcavatorWindow.AlterDropState(machine, nic.payload);
+            }
+            else if (key == "SuperOPMode")
+            {
+                int.TryParse(nic.payload ?? "1", out data);
+                Mk2ExcavatorWindow.SuperOPMode(machine, data);
+            }
+            else if (key == "MutePews")
+            {
+                int.TryParse(nic.payload ?? "1", out data);
+                Mk2ExcavatorWindow.MutePews(machine, data);
             }
         }
         return new NetworkInterfaceResponse()
