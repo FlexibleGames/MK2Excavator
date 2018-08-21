@@ -46,6 +46,8 @@ class Mk2ExcavatorMain : FortressCraftMod
                 if (mConfig.PowerPerBlockDefault > 10000) mConfig.PowerPerBlockDefault = 10000;
                 if (mConfig.PowerPerBlockOre > 40000) mConfig.PowerPerBlockOre = 40000;
                 if (mConfig.MaxPower > 100000) mConfig.MaxPower = 100000;
+                if (mConfig.OPBlock > 20) mConfig.OPBlock = 20;
+                if (mConfig.OPBlock < 2) mConfig.OPBlock = 1;
             }
             catch (Exception e)
             {
@@ -83,12 +85,12 @@ class Mk2ExcavatorMain : FortressCraftMod
         {
             if (mXMLFileExists)
             {
-                lcser.Entity = new Mk2Excavator(parameters.Segment, parameters.X, parameters.Y, parameters.Z, parameters.Cube, parameters.Flags, parameters.Value, parameters.LoadFromDisk, mConfig.PowerPerBlockDefault, mConfig.PowerPerBlockOre, mConfig.DigRadius, mConfig.DigHeight, mConfig.MaxPower);
+                lcser.Entity = new Mk2Excavator(parameters.Segment, parameters.X, parameters.Y, parameters.Z, parameters.Cube, parameters.Flags, parameters.Value, parameters.LoadFromDisk, mConfig.PowerPerBlockDefault, mConfig.PowerPerBlockOre, mConfig.DigRadius, mConfig.DigHeight, mConfig.MaxPower, mConfig.OPBlock);
             }
             else
             {
                 Debug.LogWarning("Mk2Excavator: ERROR: XMLConfig File Does not exist, using defaults.");
-                lcser.Entity = new Mk2Excavator(parameters.Segment, parameters.X, parameters.Y, parameters.Z, parameters.Cube, parameters.Flags, parameters.Value, parameters.LoadFromDisk, 20, 80, 9, 128, 1280);
+                lcser.Entity = new Mk2Excavator(parameters.Segment, parameters.X, parameters.Y, parameters.Z, parameters.Cube, parameters.Flags, parameters.Value, parameters.LoadFromDisk, 20, 80, 9, 128, 1280, 5);
             }
         }
         return lcser;

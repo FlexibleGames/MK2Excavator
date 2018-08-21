@@ -87,6 +87,7 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
 
     private ushort mReplaceType = 1;
 
+    // VERSION 10 changes
     private DigArea digArea;
     private IEnumerator<CubeCoord> digAreaEnumerator;
     private CubeCoord? currentCube;
@@ -96,9 +97,10 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
     public int mutePews;
     private int powerDefaultBackup;
     private int powerOreBackup;
+    private int OPBlockCount;
 
     public Mk2Excavator(Segment segment, long x, long y, long z, ushort cube, byte flags, ushort lValue,
-        bool lbFromDisk, int powerDefault, int powerOre, int digRadius, int digHeight, int maxPower)
+        bool lbFromDisk, int powerDefault, int powerOre, int digRadius, int digHeight, int maxPower, int opBlocks)
         : base(eSegmentEntity.Mod, SpawnableObjectEnum.AutoExcavator, x, y, z, cube, flags, lValue, Vector3.zero,
             segment)
     {
@@ -128,6 +130,7 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
         this.mrMaxPower = maxPower;
         this.mutePews = 0;
         // New DigArea object should go in here
+        OPBlockCount = opBlocks;
         machineFlags = flags;
         origin = new CubeCoord(x, y, z);
         digArea = new DigArea(origin, 0, digRadius, digHeight, machineFlags);
@@ -458,8 +461,8 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
                     {
                         OPCounter++;
                         currentCube = null;
-                        if (OPCounter > 5)
-                            break;
+                        if (OPCounter > OPBlockCount)
+                            return;
                         continue;
                     }
                 case DigResult.Skip:
@@ -467,7 +470,7 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
                     skipCounter++;
                     currentCube = null;
                     if (skipCounter > 32)
-                        break;
+                        return;
                     continue;
                 case DigResult.Fail:
                     // Fail, we try this cube again next tick
@@ -486,7 +489,7 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
 
     private DigResult AttemptToDig(long checkX, long checkY, long checkZ)
     {
-        mnDigSizeY = digArea.CurrentHeight;
+        mnCurrentDigSizeY = digArea.CurrentHeight;
         var segment = mFrustrum != null
             ? AttemptGetSegment(checkX, checkY, checkZ)
             : WorldScript.instance.GetSegment(checkX, checkY, checkZ);
@@ -854,15 +857,16 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
                     bool rshiftkey = Input.GetKey(KeyCode.RightShift);
 
                     bool radiusupkey = Input.GetKeyDown(KeyCode.Home);
-                    bool superOPkey = Input.GetKeyDown(KeyCode.KeypadMultiply);
+                    bool superOPkey = Input.GetKeyDown(KeyCode.O);
                     if ((lshiftkey || rshiftkey) && superOPkey)
                     {
                         this.mfCommandDebounce += LowFrequencyThread.mrPreviousUpdateTimeStep;
-                        if (this.mfCommandDebounce >= 0.4f)
+                        if (this.mfCommandDebounce >= 0.2f)
                         {
                             superOPflag = !superOPflag;
-
-                            Mk2ExcavatorWindow.SuperOPMode(this, superOPflag ? 1 : 0);                            
+                            AudioHUDManager.instance.HUDOut();
+                            Mk2ExcavatorWindow.SuperOPMode(this, superOPflag ? 1 : 0);
+                            UIManager.ForceNGUIUpdate = 0.1f;
                             mfCommandDebounce = 0f;
                         }
                     }
@@ -984,16 +988,16 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
                         }
                     }
 
-                    bool rctrlKey = Input.GetKeyDown(KeyCode.RightControl);
-                    bool lctrlKey = Input.GetKeyDown(KeyCode.LeftControl);
-                    bool essKey = Input.GetKeyDown(KeyCode.S);
-                    if ((rctrlKey || lctrlKey) && essKey)
+                    bool mutekey = Input.GetKeyDown(KeyCode.J);
+                    if (mutekey)
                     {
                         this.mfCommandDebounce += LowFrequencyThread.mrPreviousUpdateTimeStep;
-                        if (this.mfCommandDebounce >= 0.4f)
+                        if (this.mfCommandDebounce >= 0.3f)
                         {
                             mutePews = mutePews == 0 ? 1 : 0;
                             Mk2ExcavatorWindow.MutePews(this, mutePews);
+                            AudioHUDManager.instance.HUDOut();
+                            UIManager.ForceNGUIUpdate = 0.1f;
                             mfCommandDebounce = 0f;
                         }
                     }
@@ -1003,7 +1007,7 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
                         MarkDirtyDelayed();
                     }
 
-                    if (radiusupkey || radiusdownkey || heightdownkey || heightupkey || superOPkey || essKey)
+                    if (radiusupkey || radiusdownkey || heightdownkey || heightupkey || superOPkey || mutekey)
                     {
                         this.RequestImmediateNetworkUpdate();
                         UpdateDigSettings();
@@ -1013,7 +1017,7 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
                 UIManager.ForceNGUIUpdate = 0.1f;
 
                 var response = new StringBuilder();
-                response.AppendLine("Mk2 Excavator v" + mModVersion + (mutePews!=0 ? " muted" : ""));
+                response.AppendLine("Mk2 Excavator v" + mModVersion + (mutePews==1 ? " muted" : ""));
                 response.AppendLine(mnTotalBlocksScanned + " Blocks Scanned");
                 response.AppendLine((PercentScanned * 100) + "% complete " + (superOPflag ? "@.@" : ""));
                 response.AppendLine(mrCurrentPower + "/" + mrMaxPower + " power");

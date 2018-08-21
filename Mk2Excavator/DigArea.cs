@@ -20,7 +20,11 @@ public class DigArea
     private int MaxHeight;
 
     public int Volume; 
-    public int CurrentHeight;
+    public int CurrentHeight
+    {
+        get { return CurHeight; }
+    }
+     
 
     public DigArea(CubeCoord origin, int curHeight, int digRadius, int maxHeight, byte flags)
     {
@@ -34,8 +38,7 @@ public class DigArea
         this.DigRadius = digRadius;
         this.MaxHeight = maxHeight;
 
-        Volume = ((digRadius * 2) + 1) * maxHeight;
-        CurrentHeight = curHeight;
+        Volume = ((digRadius * 2) + 1) * ((digRadius * 2) + 1) * maxHeight;
 
         // We'll need these to math later
         var rotationQuart = SegmentCustomRenderer.GetRotationQuaternion(flags);
@@ -78,7 +81,6 @@ public class DigArea
                     z += (long) ((double) forward * vectorForward.z);
 
                     CurHeight = height;
-                    CurrentHeight = height;
 
                     yield return new CubeCoord(x, y, z);
                 }
