@@ -4,4 +4,5 @@
   <DigRadius>4</DigRadius>
   <DigHeight>64</DigHeight>
   <MaxPower>1280</MaxPower>
+  <OPBlock>5</OPBlock>
 </Mk2ExcavatorConfig>
