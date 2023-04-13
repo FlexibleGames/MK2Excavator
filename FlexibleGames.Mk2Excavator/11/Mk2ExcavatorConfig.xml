@@ -1,0 +1,7 @@
+<Mk2ExcavatorConfig>
+	<PowerPerBlockDefault>20</PowerPerBlockDefault>
+	<PowerPerBlockOre>80</PowerPerBlockOre>
+	<DigRadius>4</DigRadius>
+	<DigHeight>64</DigHeight>
+	<MaxPower>1280</MaxPower>
+</Mk2ExcavatorConfig>

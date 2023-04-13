@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfCraftData xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <CraftData>
+    <Key>FlexibleGames.Mk2Excavator</Key>
+    <Category>mining</Category>
+    <Tier>2</Tier>
+    <CraftedKey>FlexibleGames.Mk2Excavator</CraftedKey>
+    <CraftedAmount>1</CraftedAmount>
+    <Costs>
+      <CraftCost>
+        <Key>LightWeightMachineHousing</Key>
+        <Amount>2</Amount>
+      </CraftCost>
+      <CraftCost>
+        <Key>LaserEnergyTransmitterMK1</Key>
+        <Amount>2</Amount>
+      </CraftCost>
+      <CraftCost>
+        <Key>ServoMotor</Key>
+        <Amount>10</Amount>
+      </CraftCost>
+      <CraftCost>
+        <Key>ConductivePCB</Key>
+        <Amount>5</Amount>
+      </CraftCost>	  
+    </Costs>
+    <Description>An in-game configurable Excavator, digs up to 2048 high, optional ore removal (uses more power-per-block).</Description>
+    <Hint>Hit Q to toggle clearing of Ores.</Hint>
+	<ScanRequirements>
+		<Scan>LithiumOre</Scan>
+	</ScanRequirements>	
+	<ResearchCost>6</ResearchCost>
+	<ResearchRequirements>
+		<Research>T1 Power</Research>
+	</ResearchRequirements>    
+  </CraftData>
+ </ArrayOfCraftData>

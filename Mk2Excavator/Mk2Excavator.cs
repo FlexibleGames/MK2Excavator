@@ -9,6 +9,7 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
     {
         ClearGarbage,
         ClearOre,
+        ClearCryo,
         ClearAll
     }
 
@@ -24,7 +25,7 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
     public float mrCurrentPower;
     public float mrPowerRate = 20f;
 
-    public int mModVersion = 10;
+    public int mModVersion = 11;
     private string PopUpText;
     public static bool AllowMovement = true;
     public bool mbDoDigOre;
@@ -500,37 +501,45 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
             return DigResult.Fail;
         }
 
-        ushort cube = segment.GetCube(checkX, checkY, checkZ);
+        ushort cube = segment.GetCube(checkX, checkY, checkZ);                
 
         if (cube == eCubeTypes.CentralPowerHub)
-            return DigResult.Dig;
+            return DigResult.Skip;
 
         if (cube == mReplaceType)
             return DigResult.Skip;
+        
+        if (eExcavateState == ExcavateState.ClearCryo)
+        {
+            if (cube != eCubeTypes.ColdCreep || cube != eCubeTypes.ColdCreepFluid || cube != eCubeTypes.HardenedResin)
+            {
+                return DigResult.Skip;
+            }
+        }
 
         if (CubeHelper.IsReinforced(cube) && eExcavateState != ExcavateState.ClearAll)
         {
-            return DigResult.Dig;
+            return DigResult.Skip;
         }
 
         if (CubeHelper.HasEntity((int) cube) && eExcavateState != ExcavateState.ClearAll)
         {
             if (cube != eCubeTypes.AlienPlant && cube != eCubeTypes.ArachnidRock)
             {
-                return DigResult.Dig;
+                return DigResult.Skip;
             }
         }
 
-        if (TerrainData.GetHardness(cube, 0) > 500f)
+        if ((TerrainData.GetHardness(cube, 0) > 500f) && eExcavateState != ExcavateState.ClearCryo)
         {
-            return DigResult.Dig;
+            return DigResult.Skip;
         }
 
         if (eExcavateState == ExcavateState.ClearGarbage)
         {
             if (CubeHelper.IsOre(cube))
             {
-                return DigResult.Dig;
+                return DigResult.Skip;
             }
         }
 
@@ -577,6 +586,8 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
         }
 
         ushort mValue = segment.GetCubeData(checkX, checkY, checkZ).mValue;
+
+        // This actually swaps the block to Air
         WorldScript.instance.BuildFromEntity(segment, checkX, checkY, checkZ, this.mReplaceType,
             TerrainData.GetDefaultValue(this.mReplaceType));
         this.mrCurrentPower -= this.mrPowerRate;
@@ -695,6 +706,12 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
             this.mbDoDigOre = true;
             this.mrPowerRate = this.mrPowerRateOre;
         }
+        else if (this.eExcavateState == ExcavateState.ClearAll)
+        {
+            this.eExcavateState = ExcavateState.ClearCryo;
+            this.mbDoDigOre = false;
+            this.mrPowerRate = this.mrPowerRateOre;
+        }
         else
         {
             this.eExcavateState = ExcavateState.ClearGarbage;
@@ -721,6 +738,10 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
                 break;
             default:
                 break;
+        }
+        if (eExcavateState == ExcavateState.ClearCryo)
+        {
+            eDropState = DropState.DropNone;
         }
     }
 
@@ -797,6 +818,9 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
                                         break;
                                     case ExcavateState.ClearOre:
                                         digstate = "ClearOre";
+                                        break;
+                                    case ExcavateState.ClearCryo:
+                                        digstate = "ClearCryo";
                                         break;
                                     default:
                                         digstate = "Error";

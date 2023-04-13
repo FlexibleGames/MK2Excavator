@@ -85,6 +85,7 @@ public class Mk2ExcavatorWindow : BaseMachineWindow
             case "ClearAll": newdigstate = Mk2Excavator.ExcavateState.ClearAll; break;
             case "ClearGarbage": newdigstate = Mk2Excavator.ExcavateState.ClearGarbage; break;
             case "ClearOre": newdigstate = Mk2Excavator.ExcavateState.ClearOre; break;
+            case "ClearCryo": newdigstate = Mk2Excavator.ExcavateState.ClearCryo;break;
             case "Error": Debug.Log("Mk2Excavator: Error while processing NewDigState"); break;
             default: break;
         }
