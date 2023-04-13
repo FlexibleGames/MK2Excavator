@@ -511,7 +511,8 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
         
         if (eExcavateState == ExcavateState.ClearCryo)
         {
-            if (cube != eCubeTypes.ColdCreep || cube != eCubeTypes.ColdCreepFluid || cube != eCubeTypes.HardenedResin)
+            //Debug.Log($"Mk2Excavator: ClearCryo on, cube = {cube}");
+            if (cube != eCubeTypes.ColdCreep && cube != eCubeTypes.ColdCreepFluid && cube != eCubeTypes.HardenedResin)
             {
                 return DigResult.Skip;
             }
@@ -709,8 +710,9 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
         else if (this.eExcavateState == ExcavateState.ClearAll)
         {
             this.eExcavateState = ExcavateState.ClearCryo;
+            this.eDropState = DropState.DropNone;
             this.mbDoDigOre = false;
-            this.mrPowerRate = this.mrPowerRateOre;
+            this.mrPowerRate = this.mrPowerRateOre * 3;
         }
         else
         {
