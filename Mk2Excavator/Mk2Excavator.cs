@@ -21,9 +21,9 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
         DropAll
     }
 
-    public float mrMaxPower = 1280f;
+    public float mrMaxPower = 1600f;
     public float mrCurrentPower;
-    public float mrPowerRate = 20f;
+    public float mrPowerRate = 10f;
 
     public int mModVersion = 11;
     private string PopUpText;
@@ -881,6 +881,8 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
 
                     bool lshiftkey = Input.GetKey(KeyCode.LeftShift);
                     bool rshiftkey = Input.GetKey(KeyCode.RightShift);
+                    bool laltkey = Input.GetKey(KeyCode.LeftAlt);
+                    bool raltkey = Input.GetKey(KeyCode.RightAlt); 
 
                     bool radiusupkey = Input.GetKeyDown(KeyCode.Home);
                     bool superOPkey = Input.GetKeyDown(KeyCode.O);
@@ -911,11 +913,18 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
                                     this.mnDigSizeX += 10;
                                     this.mnDigSizeZ += 10;
                                 }
+                                else if (laltkey || raltkey)
+                                {
+                                    this.mnDigSizeX += 100;
+                                    this.mnDigSizeZ += 100;
+                                }
                                 else
                                 {
                                     this.mnDigSizeX++;
                                     this.mnDigSizeZ++;
                                 }
+                                if (mnDigSizeX > 1024) mnDigSizeX = 1024;
+                                if (mnDigSizeZ > 1024) mnDigSizeZ = 1024;
 
                                 Mk2ExcavatorWindow.AlterRadius(this, mnDigSizeX);
                                 //if (!WorldScript.mbIsServer)
@@ -942,11 +951,18 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
                                     this.mnDigSizeX -= 10;
                                     this.mnDigSizeZ -= 10;
                                 }
+                                else if (laltkey || raltkey)
+                                {
+                                    this.mnDigSizeX -= 100;
+                                    this.mnDigSizeZ -= 100;
+                                }
                                 else
                                 {
                                     this.mnDigSizeX--;
                                     this.mnDigSizeZ--;
                                 }
+                                if (mnDigSizeX < 1) mnDigSizeX = 1;
+                                if (mnDigSizeZ < 1) mnDigSizeZ = 1;
 
                                 Mk2ExcavatorWindow.AlterRadius(this, mnDigSizeX);
                                 //if (!WorldScript.mbIsServer)
@@ -970,6 +986,10 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
                                 if ((lshiftkey || rshiftkey) && mnDigSizeY < 2038)
                                 {
                                     this.mnDigSizeY += 10;
+                                }
+                                else if ((laltkey || raltkey) && mnDigSizeY < 1948)
+                                {
+                                    mnDigSizeY += 100;
                                 }
                                 else
                                 {
@@ -995,9 +1015,13 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
                             AudioHUDManager.instance.HUDOut();
                             if (this.mnDigSizeY > 4)
                             {
-                                if ((lshiftkey || rshiftkey) && mnDigSizeY > 14)
+                                if ((lshiftkey || rshiftkey) && mnDigSizeY >= 14)
                                 {
                                     this.mnDigSizeY -= 10;
+                                }
+                                else if ((laltkey || raltkey) && mnDigSizeY >= 104)
+                                {
+                                    this.mnDigSizeY -= 100;
                                 }
                                 else
                                 {
@@ -1049,8 +1073,8 @@ public class Mk2Excavator : MachineEntity, PowerConsumerInterface
                 response.AppendLine(mrCurrentPower + "/" + mrMaxPower + " power");
                 response.AppendLine("(Q)Clear mode: Currently: " + eExcavateState);
                 response.AppendLine("(T)Drop mode: Currently: " + eDropState);
-                response.AppendLine("(Shift) (Home/End) Radius: " + mnDigSizeX);
-                response.AppendLine("(Shift) Numpad (+/-) Height: " + mnDigSizeY);
+                response.AppendLine("(Sft/Alt) (Home/End) Radius: " + mnDigSizeX);
+                response.AppendLine("(Sft/Alt) Numpad (+/-) Height: " + mnDigSizeY);
                 PopUpText = response.ToString();
             }
         }

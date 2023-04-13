@@ -12,7 +12,7 @@ public class Mk2ExcavatorConfig
     public int PowerPerBlockOre = 80;
     public int DigRadius = 8;
     public int DigHeight = 30;
-    public int MaxPower = 1280;
+    public int MaxPower = 1600;
     public int OPBlock = 5;
 }
 

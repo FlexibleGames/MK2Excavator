@@ -3,6 +3,6 @@
   <PowerPerBlockOre>80</PowerPerBlockOre>
   <DigRadius>8</DigRadius>
   <DigHeight>30</DigHeight>
-  <MaxPower>1280</MaxPower>
+  <MaxPower>1600</MaxPower>
   <OPBlock>5</OPBlock>
 </Mk2ExcavatorConfig>
